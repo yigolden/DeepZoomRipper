@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>dotnet-dzripper</AssemblyName>
+    <AssemblyTitle>DeepZoom Ripper</AssemblyTitle>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>dotnet-dzripper</ToolCommandName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine.Experimental" Version="0.3.0-alpha.19405.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DeepZoomRipperLibrary\DeepZoomRipperLibrary.csproj" />
+  </ItemGroup>
+
+</Project>
