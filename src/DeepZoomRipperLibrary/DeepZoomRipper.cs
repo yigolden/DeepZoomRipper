@@ -6,14 +6,14 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.IO;
+using PooledGrowableBufferHelper;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
 using TiffLibrary;
-using TiffLibrary.PixelFormats;
+using TiffLibrary.ImageEncoder;
 
 namespace DeepZoomRipperLibrary
 {
@@ -35,11 +35,10 @@ namespace DeepZoomRipperLibrary
         private Stream _stream;
         private TiffFileWriter _fileWriter;
         private TiffFileReader _fileReader;
-        private TiffImageEncoder<TiffRgb24> _encoder;
+        private TiffImageEncoder<Rgb24> _encoder;
 
         // Tools
         private Configuration _configuration;
-        private RecyclableMemoryStreamManager _memoryStreamManager = new RecyclableMemoryStreamManager();
 
         // Properties
         public string Software { get; set; }
@@ -104,12 +103,15 @@ namespace DeepZoomRipperLibrary
             _configuration.MaxDegreeOfParallelism = 1;
 
             var builder = new TiffImageEncoderBuilder();
-            builder.PhotometricInterpretation = TiffPhotometricInterpretation.RGB;
+            builder.PhotometricInterpretation = TiffPhotometricInterpretation.YCbCr;
             builder.IsTiled = true;
             builder.TileSize = new TiffSize(OutputTileSize, OutputTileSize);
-            builder.Compression = TiffCompression.Deflate;
-            builder.ApplyPredictor = TiffPredictor.HorizontalDifferencing;
-            _encoder = builder.Build<TiffRgb24>();
+            builder.HorizontalChromaSubSampling = 2;
+            builder.VerticalChromaSubSampling = 2;
+            builder.Compression = TiffCompression.Jpeg;
+            builder.JpegOptions = new TiffJpegEncodingOptions { OptimizeCoding = true };
+
+            _encoder = builder.BuildForImageSharp<Rgb24>();
         }
 
         #endregion
@@ -175,6 +177,8 @@ namespace DeepZoomRipperLibrary
             List<Exception> capturedExceptions = null;
             for (int i = 0; i < MaxRetryCount; i++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 try
                 {
                     using (HttpRequestMessage request = requestFunc())
@@ -215,7 +219,7 @@ namespace DeepZoomRipperLibrary
 
         protected virtual async Task<Image<Rgb24>> ReadTileImageAsync(int layer, int column, int row, CancellationToken cancellationToken)
         {
-            using (MemoryStream ms = _memoryStreamManager.GetStream())
+            using (PooledMemoryStream ms = PooledMemoryStreamManager.Shared.GetStream())
             {
                 await CopyTileStreamAsync(layer, column, row, ms, cancellationToken).ConfigureAwait(false);
                 ms.Seek(0, SeekOrigin.Begin);
@@ -225,20 +229,14 @@ namespace DeepZoomRipperLibrary
 
         public async Task RipBaseLayerAsync(IRipperInitialLayerAcquisitionReporter reporter, CancellationToken cancellationToken)
         {
-            int layer = _layers.Length - 1;
             int outputTileSize = _options.OutputTileSize;
-
-            int deepZoomTileSize = _manifest.TileSize;
-            int deepZoomOverlap = _manifest.Overlap;
-            int deepZoomTileRowCount = (_manifest.Height + deepZoomTileSize - 1) / deepZoomTileSize;
-            int deepZoomTileColCount = (_manifest.Width + deepZoomTileSize - 1) / deepZoomTileSize;
 
             int tiffRowCount = (ImageHeight + outputTileSize - 1) / outputTileSize;
             int tiffColCount = (ImageWidth + outputTileSize - 1) / outputTileSize;
 
             int index = 0;
-            var offsets = new ulong[tiffRowCount * tiffColCount];
-            var byteCounts = new ulong[tiffRowCount * tiffColCount];
+            ulong[] offsets = new ulong[tiffRowCount * tiffColCount];
+            ulong[] byteCounts = new ulong[tiffRowCount * tiffColCount];
             ulong totalByteCount = 0;
 
             reporter?.ReportStartInitialLayerAcquisition(offsets.Length);
@@ -246,8 +244,6 @@ namespace DeepZoomRipperLibrary
             using (var regionReader = new TileRegionReader(this))
             using (Image<Rgb24> canvas = new Image<Rgb24>(_configuration, outputTileSize, outputTileSize))
             {
-                var pixelBuffer = new ImageSharpPixelBuffer(canvas);
-
                 for (int row = 0; row < tiffRowCount; row++)
                 {
                     int rowYOffset = row * outputTileSize;
@@ -261,7 +257,7 @@ namespace DeepZoomRipperLibrary
                         await regionReader.FillRegionAsync(colXOffset, rowYOffset, canvas, cancellationToken).ConfigureAwait(false);
 
                         cancellationToken.ThrowIfCancellationRequested();
-                        TiffStreamRegion region = await _encoder.EncodeAsync(_fileWriter, pixelBuffer).ConfigureAwait(false);
+                        TiffStreamRegion region = await _encoder.EncodeAsync(_fileWriter, canvas).ConfigureAwait(false);
 
                         offsets[index] = (ulong)region.Offset.Offset;
                         byteCounts[index] = (uint)region.Length;
@@ -277,10 +273,9 @@ namespace DeepZoomRipperLibrary
             TiffStreamOffset ifdOffset;
             using (TiffImageFileDirectoryWriter ifdWriter = _fileWriter.CreateImageFileDirectory())
             {
-                await ifdWriter.WriteTagAsync(TiffTag.PhotometricInterpretation, new TiffValueCollection<ushort>((ushort)TiffPhotometricInterpretation.RGB)).ConfigureAwait(false);
-                await ifdWriter.WriteTagAsync(TiffTag.Compression, new TiffValueCollection<ushort>((ushort)TiffCompression.Deflate)).ConfigureAwait(false);
+                await ifdWriter.WriteTagAsync(TiffTag.PhotometricInterpretation, new TiffValueCollection<ushort>((ushort)TiffPhotometricInterpretation.YCbCr)).ConfigureAwait(false);
+                await ifdWriter.WriteTagAsync(TiffTag.Compression, new TiffValueCollection<ushort>((ushort)TiffCompression.Jpeg)).ConfigureAwait(false);
                 await ifdWriter.WriteTagAsync(TiffTag.SamplesPerPixel, new TiffValueCollection<ushort>((ushort)3)).ConfigureAwait(false);
-                await ifdWriter.WriteTagAsync(TiffTag.Predictor, new TiffValueCollection<ushort>((ushort)TiffPredictor.HorizontalDifferencing)).ConfigureAwait(false);
                 await ifdWriter.WriteTagAsync(TiffTag.TileWidth, new TiffValueCollection<ushort>((ushort)outputTileSize)).ConfigureAwait(false);
                 await ifdWriter.WriteTagAsync(TiffTag.TileLength, new TiffValueCollection<ushort>((ushort)outputTileSize)).ConfigureAwait(false);
                 //ifdWriter.AddTag(TiffTag.ResolutionUnit, (ushort)TiffResolutionUnit.Inch);
@@ -395,7 +390,7 @@ namespace DeepZoomRipperLibrary
                             // First column
                             if (i == 0)
                             {
-                                if (_verticalCache.TryFind(tilePointX, tilePointY, out var cachedImage))
+                                if (_verticalCache.TryFind(tilePointX, tilePointY, out Image<Rgb24> cachedImage))
                                 {
                                     _verticalCache.RemoveEntry(tilePointX, tilePointY);
                                     tile = cachedImage;
@@ -404,7 +399,7 @@ namespace DeepZoomRipperLibrary
                             // First row
                             if (tile == null && j == 0)
                             {
-                                if (_horizontalCache.TryFind(tilePointX, tilePointY, out var cachedImage))
+                                if (_horizontalCache.TryFind(tilePointX, tilePointY, out Image<Rgb24> cachedImage))
                                 {
                                     _horizontalCache.RemoveEntry(tilePointX, tilePointY);
                                     tile = cachedImage;
@@ -520,7 +515,7 @@ namespace DeepZoomRipperLibrary
             int outputTileSize = _options.OutputTileSize;
             int outputTileSize2 = 2 * outputTileSize;
             TiffImageFileDirectory ifd = await _fileReader.ReadImageFileDirectoryAsync(ifdOffset).ConfigureAwait(false);
-            var image = await _fileReader.CreateImageDecoderAsync(ifd);
+            TiffImageDecoder image = await _fileReader.CreateImageDecoderAsync(ifd);
 
             int width = image.Width;
             int height = image.Height;
@@ -529,16 +524,14 @@ namespace DeepZoomRipperLibrary
             int tiffColCount = (height / 2 + outputTileSize - 1) / outputTileSize;
 
             int index = 0;
-            var offsets = new ulong[tiffRowCount * tiffColCount];
-            var byteCounts = new ulong[tiffRowCount * tiffColCount];
+            ulong[] offsets = new ulong[tiffRowCount * tiffColCount];
+            ulong[] byteCounts = new ulong[tiffRowCount * tiffColCount];
             ulong totalByteCount = 0;
 
             reporter?.ReportStartReducedResolutionLayerGeneration(layer, offsets.Length, width / 2, height / 2);
 
             using (Image<Rgb24> canvas2 = new Image<Rgb24>(_configuration, outputTileSize2, outputTileSize2))
             {
-                var pixelBufferCanvas2 = new ImageSharpPixelBuffer(canvas2);
-
                 for (int y = 0; y < height; y += outputTileSize2)
                 {
                     for (int x = 0; x < width; x += outputTileSize2)
@@ -546,17 +539,15 @@ namespace DeepZoomRipperLibrary
                         cancellationToken.ThrowIfCancellationRequested();
                         MemoryMarshal.AsBytes(canvas2.GetPixelSpan()).Clear();
 
-                        await image.DecodeAsync(new TiffPoint(x, y), pixelBufferCanvas2).ConfigureAwait(false);
+                        await image.DecodeAsync(new TiffPoint(x, y), canvas2).ConfigureAwait(false);
 
                         using (Image<Rgb24> tile24 = canvas2.Clone(ctx =>
                         {
                             ctx.Resize(outputTileSize, outputTileSize);
                         }))
                         {
-                            var pixelBufferTile24 = new ImageSharpPixelBuffer(tile24);
-
                             cancellationToken.ThrowIfCancellationRequested();
-                            TiffStreamRegion region = await _encoder.EncodeAsync(_fileWriter, pixelBufferTile24).ConfigureAwait(false);
+                            TiffStreamRegion region = await _encoder.EncodeAsync(_fileWriter, tile24).ConfigureAwait(false);
 
                             offsets[index] = (ulong)region.Offset.Offset;
                             byteCounts[index] = (uint)region.Length;
@@ -573,10 +564,9 @@ namespace DeepZoomRipperLibrary
             using (TiffImageFileDirectoryWriter ifdWriter = _fileWriter.CreateImageFileDirectory())
             {
                 await ifdWriter.WriteTagAsync(TiffTag.NewSubfileType, new TiffValueCollection<ushort>((ushort)TiffNewSubfileType.ReducedResolution)).ConfigureAwait(false);
-                await ifdWriter.WriteTagAsync(TiffTag.PhotometricInterpretation, new TiffValueCollection<ushort>((ushort)TiffPhotometricInterpretation.RGB)).ConfigureAwait(false);
-                await ifdWriter.WriteTagAsync(TiffTag.Compression, new TiffValueCollection<ushort>((ushort)TiffCompression.Deflate)).ConfigureAwait(false);
+                await ifdWriter.WriteTagAsync(TiffTag.PhotometricInterpretation, new TiffValueCollection<ushort>((ushort)TiffPhotometricInterpretation.YCbCr)).ConfigureAwait(false);
+                await ifdWriter.WriteTagAsync(TiffTag.Compression, new TiffValueCollection<ushort>((ushort)TiffCompression.Jpeg)).ConfigureAwait(false);
                 await ifdWriter.WriteTagAsync(TiffTag.SamplesPerPixel, new TiffValueCollection<ushort>((ushort)3)).ConfigureAwait(false);
-                await ifdWriter.WriteTagAsync(TiffTag.Predictor, new TiffValueCollection<ushort>((ushort)TiffPredictor.HorizontalDifferencing)).ConfigureAwait(false);
                 await ifdWriter.WriteTagAsync(TiffTag.TileWidth, new TiffValueCollection<ushort>((ushort)outputTileSize)).ConfigureAwait(false);
                 await ifdWriter.WriteTagAsync(TiffTag.TileLength, new TiffValueCollection<ushort>((ushort)outputTileSize)).ConfigureAwait(false);
                 //ifdWriter.AddTag(TiffTag.ResolutionUnit, (ushort)TiffResolutionUnit.Inch);

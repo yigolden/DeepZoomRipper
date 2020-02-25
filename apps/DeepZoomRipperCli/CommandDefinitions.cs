@@ -32,9 +32,9 @@ namespace DeepZoomRipperCli
                 };
 
             Option TileSize() =>
-                new Option("--tile-size", "Tile size in the output TIFF. [512]")
+                new Option("--tile-size", "Tile size in the output TIFF. [256]")
                 {
-                    Argument = new Argument<int>(() => 512) { Arity = ArgumentArity.ExactlyOne }
+                    Argument = new Argument<int>(() => 256) { Arity = ArgumentArity.ExactlyOne }
                 };
 
             Option NoSoftwareField() =>
