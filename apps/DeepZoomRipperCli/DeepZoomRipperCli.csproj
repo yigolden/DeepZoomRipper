@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <AssemblyName>dotnet-dzripper</AssemblyName>
     <AssemblyTitle>DeepZoom Ripper</AssemblyTitle>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFrameworks>netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
 
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>dotnet-dzripper</ToolCommandName>
