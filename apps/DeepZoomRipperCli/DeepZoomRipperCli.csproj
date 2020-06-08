@@ -6,6 +6,7 @@
     <AssemblyName>dotnet-dzripper</AssemblyName>
     <AssemblyTitle>DeepZoom Ripper</AssemblyTitle>
     <TargetFrameworks>netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
+    <RollForward>Major</RollForward>
     <Description>A .NET Core global tool for downloading massive-sized image arranged in deep zoom format and saving it as a tiled pyramid TIFF file to the local file system.</Description>
 
     <PackAsTool>true</PackAsTool>
