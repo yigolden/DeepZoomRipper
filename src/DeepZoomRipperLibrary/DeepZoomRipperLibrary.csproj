@@ -8,10 +8,10 @@
 
   <ItemGroup>
     <PackageReference Include="PooledGrowableBufferHelper" Version="1.0.5" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-rc0001" />
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta0008" />
-    <PackageReference Include="TiffLibrary" Version="0.5.201-beta" />
-    <PackageReference Include="TiffLibrary.ImageSharpAdapter" Version="0.5.201-beta" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-rc0002" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta0009" />
+    <PackageReference Include="TiffLibrary" Version="0.5.220-beta" />
+    <PackageReference Include="TiffLibrary.ImageSharpAdapter" Version="0.5.220-beta" />
   </ItemGroup>
 
 </Project>
