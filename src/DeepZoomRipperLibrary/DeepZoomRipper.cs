@@ -44,7 +44,7 @@ namespace DeepZoomRipperLibrary
         // Configuration
         public string Software { get; set; }
         public int JpegQuality { get; set; } = 75;
-        public bool UseSharedQuantizationTables { get; set; } = true;
+        public bool UseSharedQuantizationTables { get; set; }
 
         public enum HttpClientInitializationOptions
         {

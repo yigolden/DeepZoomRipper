@@ -9,7 +9,7 @@ namespace DeepZoomRipperCli
 {
     internal class RipActions
     {
-        public static async Task<int> Rip(string source, FileInfo output, int tileSize, bool noSoftwareField, CancellationToken cancellationToken)
+        public static async Task<int> Rip(string source, FileInfo output, int tileSize, bool noSoftwareField, bool useSharedQuantizationTables, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(source))
             {
@@ -49,6 +49,7 @@ namespace DeepZoomRipperCli
                 {
                     ripper.Software = ThisAssembly.AssemblyTitle + " " + ThisAssembly.AssemblyInformationalVersion;
                 }
+                ripper.UseSharedQuantizationTables = useSharedQuantizationTables;
 
                 var sw = new Stopwatch();
                 sw.Start();

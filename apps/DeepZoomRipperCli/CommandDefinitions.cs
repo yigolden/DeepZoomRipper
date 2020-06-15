@@ -15,6 +15,7 @@ namespace DeepZoomRipperCli
             command.AddOption(Output());
             command.AddOption(TileSize());
             command.AddOption(NoSoftwareField());
+            command.AddOption(UseSharedQuantizationTables());
 
             command.AddArgument(new Argument<string>()
             {
@@ -23,7 +24,7 @@ namespace DeepZoomRipperCli
                 Arity = ArgumentArity.ZeroOrOne
             });
 
-            command.Handler = CommandHandler.Create<string, FileInfo, int, bool, CancellationToken>(RipActions.Rip);
+            command.Handler = CommandHandler.Create<string, FileInfo, int, bool, bool, CancellationToken>(RipActions.Rip);
 
             Option Output() =>
                 new Option(new[] { "--output", "--out", "-o" }, "Output TIFF file location.")
@@ -41,6 +42,13 @@ namespace DeepZoomRipperCli
                 new Option("--no-software-field", "Skip writting Software field. [false]")
                 {
                     Argument = new Argument<bool>(() => false) { Arity = ArgumentArity.ZeroOrOne }
+                };
+
+            Option UseSharedQuantizationTables() =>
+                new Option("--use-shared-quantization-tables", "Use shared JPEG quantization tables between tiles. [false]")
+                {
+                    Argument = new Argument<bool>(() => false) { Arity = ArgumentArity.ZeroOrOne },
+                    IsHidden = true
                 };
 
         }
