@@ -523,7 +523,7 @@ namespace DeepZoomRipperLibrary
                 ifd = await GenerateReducedResolutionLayerAsync(++layer, ifd, reporter, cancellationToken).ConfigureAwait(false);
 
                 width = (width + 1) / 2;
-                height = (width + 1) / 2;
+                height = (height + 1) / 2;
             }
 
             reporter?.ReportCompleteReducedResolutionGeneration(layerCount);
