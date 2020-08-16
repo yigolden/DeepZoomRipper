@@ -23,26 +23,26 @@ namespace DeepZoomRipperLibrary
         private readonly DeepZoomRipperOptions _options;
 
         // HTTP request related
-        private readonly CookieContainer _cookieContainer;
-        private readonly HttpClient _http;
+        private readonly CookieContainer? _cookieContainer;
+        private readonly HttpClient? _http;
 
         // Manifests
-        private DeepZoomManifest _manifest;
-        private DeepZoomLayer[] _layers;
+        private DeepZoomManifest? _manifest;
+        private DeepZoomLayer[]? _layers;
 
         // Tiff file related
         private readonly string _outputFile;
-        private Stream _stream;
-        private TiffFileWriter _fileWriter;
-        private TiffFileReader _fileReader;
-        private TiffImageEncoder<Rgb24> _encoder;
+        private Stream? _stream;
+        private TiffFileWriter? _fileWriter;
+        private TiffFileReader? _fileReader;
+        private TiffImageEncoder<Rgb24>? _encoder;
 
         // Tools
         private Configuration _configuration;
-        private byte[] _jpegTables;
+        private byte[]? _jpegTables;
 
         // Configuration
-        public string Software { get; set; }
+        public string? Software { get; set; }
         public int JpegQuality { get; set; } = 75;
         public bool UseSharedQuantizationTables { get; set; }
 
@@ -55,7 +55,7 @@ namespace DeepZoomRipperLibrary
 
         #region Properties
 
-        public string ImageFormat => _manifest?.Format;
+        public string? ImageFormat => _manifest?.Format;
 
         public int DeepZoomTileSize => _manifest?.TileSize ?? 0;
 
@@ -69,7 +69,7 @@ namespace DeepZoomRipperLibrary
 
         public int OutputTileSize => _options.OutputTileSize;
 
-        private bool UseBigTiff => (_manifest.Width * _manifest.Height) > 536870912;
+        private bool UseBigTiff => _manifest is null ? throw new InvalidOperationException() : (_manifest.Width * _manifest.Height) > 536870912;
 
         #endregion
 
@@ -184,12 +184,21 @@ namespace DeepZoomRipperLibrary
 
         protected async Task<HttpResponseMessage> SendAsync(Func<HttpRequestMessage> requestFunc, CancellationToken cancellationToken)
         {
-            HttpResponseMessage response = null;
+            if (_http is null)
+            {
+                throw new InvalidOperationException();
+            }
 
-            int MaxRetryCount = _options.RequestMaxRetryCount;
+            HttpResponseMessage? response = null;
 
-            List<Exception> capturedExceptions = null;
-            for (int i = 0; i < MaxRetryCount; i++)
+            int maxRetryCount = _options.RequestMaxRetryCount;
+            if (maxRetryCount <= 0)
+            {
+                throw new InvalidOperationException();
+            }
+
+            List<Exception>? capturedExceptions = null;
+            for (int i = 0; i < maxRetryCount; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -199,7 +208,7 @@ namespace DeepZoomRipperLibrary
                     {
                         response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
-                        return Interlocked.Exchange(ref response, null);
+                        return Interlocked.Exchange(ref response, null)!;
                     }
                 }
                 catch (OperationCanceledException)
@@ -210,7 +219,7 @@ namespace DeepZoomRipperLibrary
                 {
                     if (capturedExceptions == null)
                     {
-                        capturedExceptions = new List<Exception>(MaxRetryCount);
+                        capturedExceptions = new List<Exception>(maxRetryCount);
                     }
                     capturedExceptions.Add(e);
                 }
@@ -222,7 +231,7 @@ namespace DeepZoomRipperLibrary
                 await Task.Delay(_options.RequestRetryInterval, cancellationToken);
             }
 
-            throw new AggregateException(capturedExceptions.ToArray());
+            throw new AggregateException(capturedExceptions!.ToArray());
         }
 
         #endregion
@@ -243,6 +252,11 @@ namespace DeepZoomRipperLibrary
 
         public async Task RipBaseLayerAsync(IRipperInitialLayerAcquisitionReporter reporter, CancellationToken cancellationToken)
         {
+            if (_encoder is null || _fileWriter is null || _manifest is null)
+            {
+                throw new InvalidOperationException();
+            }
+
             int outputTileSize = _options.OutputTileSize;
 
             int tiffRowCount = (ImageHeight + outputTileSize - 1) / outputTileSize;
@@ -331,10 +345,10 @@ namespace DeepZoomRipperLibrary
                     await ifdWriter.WriteTagAsync(TiffTag.JPEGTables, TiffFieldType.Undefined, TiffValueCollection.UnsafeWrap(_jpegTables)).ConfigureAwait(false);
                 }
 
-                string software = Software;
+                string? software = Software;
                 if (!string.IsNullOrEmpty(software))
                 {
-                    await ifdWriter.WriteTagAsync(TiffTag.Software, new TiffValueCollection<string>(software));
+                    await ifdWriter.WriteTagAsync(TiffTag.Software, new TiffValueCollection<string>(software!));
                 }
 
                 ifdOffset = await ifdWriter.FlushAsync().ConfigureAwait(false);
@@ -371,6 +385,11 @@ namespace DeepZoomRipperLibrary
 
             public async Task FillRegionAsync(int x, int y, Image<Rgb24> region, CancellationToken cancellationToken)
             {
+                if (_ripper is null || _ripper._layers is null)
+                {
+                    throw new InvalidOperationException();
+                }
+
                 int layer = _ripper._layers.Length - 1;
 
                 int tileYIndex = y / _deepZoomTileSize;
@@ -402,14 +421,14 @@ namespace DeepZoomRipperLibrary
 
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        Image<Rgb24> tile = null;
+                        Image<Rgb24>? tile = null;
                         bool cachedOnce = false;
                         try
                         {
                             // First column
                             if (i == 0)
                             {
-                                if (_verticalCache.TryFind(tilePointX, tilePointY, out Image<Rgb24> cachedImage))
+                                if (_verticalCache.TryFind(tilePointX, tilePointY, out Image<Rgb24>? cachedImage))
                                 {
                                     _verticalCache.RemoveEntry(tilePointX, tilePointY);
                                     tile = cachedImage;
@@ -418,7 +437,7 @@ namespace DeepZoomRipperLibrary
                             // First row
                             if (tile == null && j == 0)
                             {
-                                if (_horizontalCache.TryFind(tilePointX, tilePointY, out Image<Rgb24> cachedImage))
+                                if (_horizontalCache.TryFind(tilePointX, tilePointY, out Image<Rgb24>? cachedImage))
                                 {
                                     _horizontalCache.RemoveEntry(tilePointX, tilePointY);
                                     tile = cachedImage;
@@ -491,8 +510,13 @@ namespace DeepZoomRipperLibrary
 
         #region Reduced resolution layer
 
-        public async Task GenerateReducedResolutionLayerAsync(IRipperReducedResolutionGenerationReporter reporter, CancellationToken cancellationToken)
+        public async Task GenerateReducedResolutionLayerAsync(IRipperReducedResolutionGenerationReporter? reporter, CancellationToken cancellationToken)
         {
+            if (_stream is null || _manifest is null)
+            {
+                throw new InvalidOperationException();
+            }
+
             _fileReader = await TiffFileReader.OpenAsync(_stream, leaveOpen: true);
 
             TiffStreamOffset ifd = _fileReader.FirstImageFileDirectoryOffset;
@@ -529,8 +553,13 @@ namespace DeepZoomRipperLibrary
             reporter?.ReportCompleteReducedResolutionGeneration(layerCount);
         }
 
-        internal async Task<TiffStreamOffset> GenerateReducedResolutionLayerAsync(int layer, TiffStreamOffset ifdOffset, IRipperReducedResolutionGenerationReporter reporter, CancellationToken cancellationToken)
+        internal async Task<TiffStreamOffset> GenerateReducedResolutionLayerAsync(int layer, TiffStreamOffset ifdOffset, IRipperReducedResolutionGenerationReporter? reporter, CancellationToken cancellationToken)
         {
+            if (_encoder is null || _fileReader is null || _fileWriter is null)
+            {
+                throw new InvalidOperationException();
+            }
+
             int outputTileSize = _options.OutputTileSize;
             int outputTileSize2 = 2 * outputTileSize;
             TiffImageFileDirectory ifd = await _fileReader.ReadImageFileDirectoryAsync(ifdOffset).ConfigureAwait(false);
@@ -622,10 +651,10 @@ namespace DeepZoomRipperLibrary
                     await ifdWriter.WriteTagAsync(TiffTag.TileByteCounts, new TiffValueCollection<uint>(tempArr)).ConfigureAwait(false);
                 }
 
-                string software = Software;
+                string? software = Software;
                 if (!string.IsNullOrEmpty(software))
                 {
-                    await ifdWriter.WriteTagAsync(TiffTag.Software, new TiffValueCollection<string>(software));
+                    await ifdWriter.WriteTagAsync(TiffTag.Software, new TiffValueCollection<string>(software!));
                 }
 
                 if (!(_jpegTables is null))

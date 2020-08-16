@@ -11,13 +11,13 @@ namespace DeepZoomRipperLibrary
 {
     public class DefaultDeepZoomRipper : DeepZoomRipper
     {
-        private Uri _baseUri;
-        private string _baseName;
+        private Uri? _baseUri;
+        private string? _baseName;
 
-        private TiffFileReader _tiff;
-        private TiffImageDecoder _decoder;
+        private TiffFileReader? _tiff;
+        private TiffImageDecoder? _decoder;
 
-        private Image<Rgb24> _image;
+        private Image<Rgb24>? _image;
 
         public DefaultDeepZoomRipper(DeepZoomRipperOptions options, string outputFile) : base(options, HttpClientInitializationOptions.InitializeWithCookieContainer, outputFile)
         {
@@ -56,7 +56,7 @@ namespace DeepZoomRipperLibrary
             // local TIFF file
             if ("file".Equals(manifestUri.Scheme, StringComparison.OrdinalIgnoreCase))
             {
-                TiffFileReader tiff = null;
+                TiffFileReader? tiff = null;
                 try
                 {
                     tiff = await TiffFileReader.OpenAsync(manifestUri.LocalPath).ConfigureAwait(false);

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -8,7 +8,7 @@ namespace DeepZoomRipperLibrary
 {
     internal abstract class ImageCache : IDisposable
     {
-        public abstract bool TryFind(int x, int y, out Image<Rgb24> image);
+        public abstract bool TryFind(int x, int y, [NotNullWhen(true)] out Image<Rgb24>? image);
         public abstract void SetEntry(int x, int y, Image<Rgb24> image);
         public abstract void RemoveEntry(int x, int y);
         public abstract void Clear();
@@ -17,11 +17,11 @@ namespace DeepZoomRipperLibrary
 
     internal sealed class ListBasedImageCache : ImageCache
     {
-        private List<Entry> _entries;
+        private List<Entry>? _entries;
 
-        private bool TryFind(int x, int y, out int index, out Image<Rgb24> image)
+        private bool TryFind(int x, int y, out int index, [NotNullWhen(true)] out Image<Rgb24>? image)
         {
-            List<Entry> entries = _entries;
+            List<Entry>? entries = _entries;
             if (entries != null)
             {
                 for (int i = 0; i < entries.Count; i++)
@@ -40,16 +40,19 @@ namespace DeepZoomRipperLibrary
             return false;
         }
 
-        public override bool TryFind(int x, int y, out Image<Rgb24> image)
+        public override bool TryFind(int x, int y, [NotNullWhen(true)] out Image<Rgb24>? image)
         {
             return TryFind(x, y, out _, out image);
         }
 
         public override void SetEntry(int x, int y, Image<Rgb24> image)
         {
-            Debug.Assert(image != null);
+            if (image is null)
+            {
+                throw new ArgumentNullException(nameof(image));
+            }
 
-            List<Entry> entries = _entries;
+            List<Entry>? entries = _entries;
             if (entries is null)
             {
                 _entries = entries = new List<Entry>();
@@ -62,7 +65,7 @@ namespace DeepZoomRipperLibrary
                 return;
             }
 
-            if (TryFind(x, y, out int index, out Image<Rgb24> oldImage))
+            if (TryFind(x, y, out int index, out Image<Rgb24>? oldImage))
             {
                 oldImage.Dispose();
                 Entry entry = entries[index];
@@ -83,13 +86,13 @@ namespace DeepZoomRipperLibrary
         {
             if (TryFind(x, y, out int index, out _))
             {
-                _entries.RemoveAt(index);
+                _entries!.RemoveAt(index);
             }
         }
 
         public override void Clear()
         {
-            List<Entry> entries = _entries;
+            List<Entry>? entries = _entries;
             if (entries != null)
             {
                 for (int i = 0; i < entries.Count; i++)
@@ -115,11 +118,11 @@ namespace DeepZoomRipperLibrary
 
     internal class DictionaryBasedImageCache : ImageCache
     {
-        private Dictionary<ulong, Image<Rgb24>> _entries;
+        private Dictionary<ulong, Image<Rgb24>>? _entries;
 
-        public override bool TryFind(int x, int y, out Image<Rgb24> image)
+        public override bool TryFind(int x, int y, [NotNullWhen(true)] out Image<Rgb24>? image)
         {
-            Dictionary<ulong, Image<Rgb24>> entries = _entries;
+            Dictionary<ulong, Image<Rgb24>>? entries = _entries;
             if (entries != null)
             {
                 ulong key = ((ulong)(uint)x) << 32 | (uint)y;
@@ -131,25 +134,28 @@ namespace DeepZoomRipperLibrary
 
         public override void SetEntry(int x, int y, Image<Rgb24> image)
         {
-            Debug.Assert(image != null);
+            if (image is null)
+            {
+                throw new ArgumentNullException(nameof(image));
+            }
 
-            Dictionary<ulong, Image<Rgb24>> entries = _entries;
+            Dictionary<ulong, Image<Rgb24>>? entries = _entries;
             if (entries is null)
             {
                 _entries = entries = new Dictionary<ulong, Image<Rgb24>>();
             }
 
             ulong key = ((ulong)(uint)x) << 32 | (uint)y;
-            if (_entries.TryGetValue(key, out Image<Rgb24> oldImage))
+            if (entries.TryGetValue(key, out Image<Rgb24> oldImage))
             {
                 oldImage.Dispose();
             }
-            _entries[key] = image;
+            entries[key] = image;
         }
 
         public override void RemoveEntry(int x, int y)
         {
-            Dictionary<ulong, Image<Rgb24>> entries = _entries;
+            Dictionary<ulong, Image<Rgb24>>? entries = _entries;
             if (entries != null)
             {
                 ulong key = ((ulong)(uint)x) << 32 | (uint)y;
@@ -159,7 +165,7 @@ namespace DeepZoomRipperLibrary
 
         public override void Clear()
         {
-            Dictionary<ulong, Image<Rgb24>> entries = _entries;
+            Dictionary<ulong, Image<Rgb24>>? entries = _entries;
             if (entries != null)
             {
                 foreach (KeyValuePair<ulong, Image<Rgb24>> item in entries)

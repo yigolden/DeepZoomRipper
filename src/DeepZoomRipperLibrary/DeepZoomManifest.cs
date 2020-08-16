@@ -6,7 +6,7 @@ namespace DeepZoomRipperLibrary
 {
     public class DeepZoomManifest
     {
-        public string Format { get; set; }
+        public string? Format { get; set; }
         public int TileSize { get; set; }
         public int Overlap { get; set; }
         public int Height { get; set; }

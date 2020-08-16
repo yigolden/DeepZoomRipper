@@ -43,8 +43,11 @@ namespace DeepZoomRipperLibrary
 
         internal static int FindWrappingLayer(DeepZoomLayer[] layers, int size)
         {
-            Debug.Assert(layers != null);
-            Debug.Assert(layers.Length > 0);
+            if (layers is null)
+            {
+                throw new ArgumentNullException(nameof(layers));
+            }
+
             if (size <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(size));

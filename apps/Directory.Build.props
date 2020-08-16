@@ -4,6 +4,6 @@
 
   <PropertyGroup>
     <LangVersion>8.0</LangVersion>
-    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 </Project>
