@@ -126,7 +126,7 @@ namespace DeepZoomRipperLibrary
 
                 using (var tile = new Image<Rgb24>(width, height))
                 {
-                    tile.Mutate(ctx => ctx.DrawImage(_image, new Point(-256 * column, -256 * row), opacity: 1));
+                    tile.Mutate(ctx => ctx.ApplyProcessor(new WriteRegionProcessor<Rgb24>(_image), new Rectangle(-256 * column, -256 * row, _image.Width, _image.Height)));
                     tile.SaveAsJpeg(destination);
                 }
                 return;
