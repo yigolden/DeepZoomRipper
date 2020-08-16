@@ -7,7 +7,7 @@
   <PropertyGroup>
     <Product>DeepZoomRipper</Product>
     <Authors>YiGolden</Authors>
-    <Copyright>Copyright (c) 2019 yigolden</Copyright>
+    <Copyright>Copyright (c) 2019-2020 yigolden</Copyright>
     <PackageTags>deepzoom</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/yigolden/DeepZoomRipper</PackageProjectUrl>
