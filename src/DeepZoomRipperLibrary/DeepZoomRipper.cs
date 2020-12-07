@@ -208,7 +208,7 @@ namespace DeepZoomRipperLibrary
                     {
                         response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
-                        return Interlocked.Exchange(ref response, null)!;
+                        return Interlocked.Exchange<HttpResponseMessage?>(ref response, null)!;
                     }
                 }
                 catch (OperationCanceledException)
