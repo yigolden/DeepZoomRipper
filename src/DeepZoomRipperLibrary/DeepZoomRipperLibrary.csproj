@@ -11,10 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PooledGrowableBufferHelper" Version="1.0.5" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0" />
-    <PackageReference Include="TiffLibrary" Version="0.5.252" />
-    <PackageReference Include="TiffLibrary.ImageSharpAdapter" Version="0.5.252" />
+    <PackageReference Include="PooledGrowableBufferHelper" Version="1.0.12" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.2" />
+    <PackageReference Include="TiffLibrary" Version="0.5.260" />
+    <PackageReference Include="TiffLibrary.ImageSharpAdapter" Version="0.5.260" />
   </ItemGroup>
 
 </Project>
