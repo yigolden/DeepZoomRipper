@@ -7,7 +7,7 @@
   <PropertyGroup>
     <Product>DeepZoomRipper</Product>
     <Authors>YiGolden</Authors>
-    <Copyright>Copyright (c) 2019-2020 yigolden</Copyright>
+    <Copyright>Copyright (c) 2019-2021 yigolden</Copyright>
     <PackageTags>deepzoom</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/yigolden/DeepZoomRipper</PackageProjectUrl>
@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="Nerdbank.GitVersioning">
-      <Version>3.3.37</Version>
+      <Version>3.4.244</Version>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>

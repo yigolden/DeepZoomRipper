@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net46;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
@@ -11,10 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PooledGrowableBufferHelper" Version="1.0.12" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.2" />
-    <PackageReference Include="TiffLibrary" Version="0.5.260" />
-    <PackageReference Include="TiffLibrary.ImageSharpAdapter" Version="0.5.260" />
+    <PackageReference Include="PooledGrowableBufferHelper" Version="1.0.14" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.4" />
+    <PackageReference Include="TiffLibrary" Version="0.6.61" />
+    <PackageReference Include="TiffLibrary.ImageSharpAdapter" Version="0.6.61" />
   </ItemGroup>
 
 </Project>

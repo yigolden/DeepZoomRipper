@@ -27,28 +27,27 @@ namespace DeepZoomRipperCli
             command.Handler = CommandHandler.Create<string, FileInfo, int, bool, bool, CancellationToken>(RipActions.Rip);
 
             Option Output() =>
-                new Option(new[] { "--output", "--out", "-o" }, "Output TIFF file location.")
+                new Option<FileInfo>(new[] { "--output", "--out", "-o" }, "Output TIFF file location.")
                 {
-                    Argument = new Argument<FileInfo>() { Arity = ArgumentArity.ExactlyOne }
+                    Arity = ArgumentArity.ExactlyOne
                 };
 
             Option TileSize() =>
-                new Option("--tile-size", "Tile size in the output TIFF. [256]")
+                new Option<int>("--tile-size", () => 256, "Tile size in the output TIFF.")
                 {
-                    Argument = new Argument<int>(() => 256) { Arity = ArgumentArity.ExactlyOne }
+                    Arity = ArgumentArity.ExactlyOne
                 };
 
             Option NoSoftwareField() =>
-                new Option("--no-software-field", "Skip writting Software field. [false]")
+                new Option<bool>("--no-software-field", () => false, "Skip writting Software field.")
                 {
-                    Argument = new Argument<bool>(() => false) { Arity = ArgumentArity.ZeroOrOne }
+                    Arity = ArgumentArity.ZeroOrOne
                 };
 
             Option UseSharedQuantizationTables() =>
-                new Option("--use-shared-quantization-tables", "Use shared JPEG quantization tables between tiles. [false]")
+                new Option<bool>("--use-shared-quantization-tables", () => false, "Use shared JPEG quantization tables between tiles. [false]")
                 {
-                    Argument = new Argument<bool>(() => false) { Arity = ArgumentArity.ZeroOrOne },
-                    IsHidden = true
+                    Arity = ArgumentArity.ZeroOrOne
                 };
 
         }
