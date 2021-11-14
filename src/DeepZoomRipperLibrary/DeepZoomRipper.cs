@@ -69,7 +69,7 @@ namespace DeepZoomRipperLibrary
 
         public int OutputTileSize => _options.OutputTileSize;
 
-        private bool UseBigTiff => _manifest is null ? throw new InvalidOperationException() : (_manifest.Width * _manifest.Height) > 536870912;
+        private bool UseBigTiff => _manifest is null ? throw new InvalidOperationException() : (_manifest.Width * _manifest.Height) > 134217728;
 
         #endregion
 
